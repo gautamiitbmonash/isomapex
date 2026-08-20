@@ -1,0 +1,5806 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>OSM Multi-Mode 3D Route Explorer</title>
+
+
+<!-- =========================================================
+     LEAFLET
+========================================================= -->
+
+<link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
+
+
+<!-- =========================================================
+     THREE.JS
+========================================================= -->
+
+<script
+    src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
+</script>
+
+
+<script
+    src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js">
+</script>
+
+
+<style>
+
+/* =========================================================
+   GLOBAL
+========================================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+
+html,
+body {
+
+    width: 100%;
+    height: 100%;
+
+    margin: 0;
+
+    overflow: hidden;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    background: #07100b;
+
+    color: white;
+}
+
+
+/* =========================================================
+   APP
+========================================================= */
+
+#app {
+
+    display: flex;
+
+    width: 100%;
+    height: 100%;
+}
+
+
+/* =========================================================
+   PANEL
+========================================================= */
+
+#panel {
+
+    width: 410px;
+
+    min-width: 410px;
+
+    height: 100%;
+
+    overflow-y: auto;
+
+    padding: 18px;
+
+    background: #101913;
+
+    border-right:
+        1px solid #35463b;
+
+    z-index: 10;
+}
+
+
+h1 {
+
+    margin: 0;
+
+    font-size: 22px;
+}
+
+
+.description {
+
+    margin-top: 8px;
+
+    margin-bottom: 18px;
+
+    color: #9daea4;
+
+    font-size: 12px;
+
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   LABELS
+========================================================= */
+
+label {
+
+    display: block;
+
+    margin-top: 13px;
+
+    margin-bottom: 6px;
+
+    color: #dbe7df;
+
+    font-size: 12px;
+
+    font-weight: bold;
+}
+
+
+/* =========================================================
+   INPUTS
+========================================================= */
+
+input,
+select {
+
+    width: 100%;
+
+    height: 40px;
+
+    padding:
+        0 10px;
+
+    border:
+        1px solid #435249;
+
+    border-radius: 7px;
+
+    outline: none;
+
+    background: #18251e;
+
+    color: white;
+
+    font-size: 13px;
+}
+
+
+input:focus,
+select:focus {
+
+    border-color: #25d566;
+}
+
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+.buttonRow {
+
+    display: flex;
+
+    gap: 7px;
+
+    margin-top: 9px;
+}
+
+
+.smallButton {
+
+    flex: 1;
+
+    padding: 10px 6px;
+
+    border: none;
+
+    border-radius: 7px;
+
+    background: #293a30;
+
+    color: #d8e2dc;
+
+    cursor: pointer;
+
+    font-size: 11px;
+}
+
+
+.smallButton:hover {
+
+    background: #395044;
+}
+
+
+.smallButton.danger:hover {
+
+    background: #7d3038;
+}
+
+
+#generateButton {
+
+    width: 100%;
+
+    margin-top: 13px;
+
+    padding: 13px;
+
+    border: none;
+
+    border-radius: 7px;
+
+    background: #19ad54;
+
+    color: white;
+
+    font-weight: bold;
+
+    font-size: 14px;
+
+    cursor: pointer;
+}
+
+
+#generateButton:hover {
+
+    background: #20c763;
+}
+
+
+#generateButton:disabled {
+
+    background: #44544a;
+
+    color: #9ba69f;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   POINT LIST
+========================================================= */
+
+#pointList {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 6px;
+
+    margin-top: 9px;
+}
+
+
+.pointItem {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    padding: 8px;
+
+    border:
+        1px solid #34463b;
+
+    border-radius: 7px;
+
+    background: #17231c;
+
+    font-size: 11px;
+}
+
+
+.pointNumber {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 25px;
+
+    height: 25px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: #19ad54;
+
+    color: white;
+
+    font-weight: bold;
+}
+
+
+.pointCoordinates {
+
+    flex: 1;
+
+    color: #b9c8bf;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+
+.removePoint {
+
+    width: 25px;
+
+    height: 25px;
+
+    border: none;
+
+    border-radius: 5px;
+
+    background: #49252a;
+
+    color: #ff9ba4;
+
+    cursor: pointer;
+
+}
+
+
+/* =========================================================
+   SEGMENT MODES
+========================================================= */
+
+#segmentModes {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 7px;
+
+    margin-top: 8px;
+}
+
+
+.segmentMode {
+
+    display: grid;
+
+    grid-template-columns:
+        90px 1fr;
+
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 8px;
+
+    border:
+        1px solid #34463b;
+
+    border-radius: 7px;
+
+    background: #17221b;
+}
+
+
+.segmentLabel {
+
+    color: #a9b7ae;
+
+    font-size: 11px;
+
+    font-weight: bold;
+}
+
+
+.segmentMode select {
+
+    height: 34px;
+
+    margin: 0;
+}
+
+
+/* =========================================================
+   MODE LEGEND
+========================================================= */
+
+.modeLegend {
+
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 6px;
+
+    margin-top: 9px;
+
+    padding: 9px;
+
+    border-radius: 7px;
+
+    background: #17231c;
+
+    color: #b8c5bd;
+
+    font-size: 10px;
+}
+
+
+.modeLegendItem {
+
+    display: flex;
+
+    align-items: center;
+}
+
+
+.modeDot {
+
+    width: 18px;
+
+    height: 5px;
+
+    margin-right: 6px;
+
+    border-radius: 4px;
+}
+
+
+.drivingDot {
+    background: #ff3048;
+}
+
+
+.cyclingDot {
+    background: #ffd42a;
+}
+
+
+.walkingDot {
+    background: #20ed72;
+}
+
+
+.transitDot {
+    background: #00aaff;
+}
+
+
+/* =========================================================
+   MAP
+========================================================= */
+
+#map {
+
+    width: 100%;
+
+    height: 310px;
+
+    margin-top: 12px;
+
+    border:
+        1px solid #405248;
+
+    border-radius: 8px;
+
+    overflow: hidden;
+}
+
+
+.mapHelp {
+
+    margin-top: 6px;
+
+    color: #7e9085;
+
+    font-size: 10px;
+
+    line-height: 1.4;
+}
+
+
+/* =========================================================
+   TRANSIT NOTICE
+========================================================= */
+
+.transitNotice {
+
+    margin-top: 8px;
+
+    padding: 9px;
+
+    border-radius: 7px;
+
+    background: #162633;
+
+    border:
+        1px solid #24465d;
+
+    color: #91cbed;
+
+    font-size: 10px;
+
+    line-height: 1.4;
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+#status {
+
+    margin-top: 10px;
+
+    padding: 10px;
+
+    border-radius: 7px;
+
+    background: #17231c;
+
+    color: #b6c4bb;
+
+    font-size: 11px;
+
+    line-height: 1.5;
+}
+
+
+#status.success {
+
+    color: #55ed87;
+}
+
+
+#status.error {
+
+    color: #ff7373;
+}
+
+
+/* =========================================================
+   STATISTICS
+========================================================= */
+
+#stats {
+
+    display: none;
+
+    margin-top: 10px;
+
+    padding: 11px;
+
+    border-radius: 8px;
+
+    background: #17231c;
+}
+
+
+.stat {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    padding: 5px 0;
+
+    border-bottom:
+        1px solid #29372f;
+
+    font-size: 11px;
+}
+
+
+.stat:last-child {
+
+    border-bottom: none;
+}
+
+
+.statValue {
+
+    color: #48ed7e;
+
+    font-weight: bold;
+}
+
+
+/* =========================================================
+   VIEWER
+========================================================= */
+
+#viewer {
+
+    position: relative;
+
+    flex: 1;
+
+    height: 100%;
+
+    overflow: hidden;
+
+    background:
+        radial-gradient(
+            circle at center,
+            #122219,
+            #050a07
+        );
+}
+
+
+#threeContainer {
+
+    position: absolute;
+
+    inset: 0;
+}
+
+
+/* =========================================================
+   3D CONTROLS
+========================================================= */
+
+#viewControls {
+
+    position: absolute;
+
+    top: 15px;
+
+    right: 15px;
+
+    z-index: 20;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 5px;
+}
+
+
+.viewButton {
+
+    width: 42px;
+
+    height: 38px;
+
+    border:
+        1px solid #4b5d51;
+
+    border-radius: 7px;
+
+    background:
+        rgba(8,15,11,0.88);
+
+    color: white;
+
+    cursor: pointer;
+
+    font-size: 18px;
+}
+
+
+.viewButton:hover {
+
+    background:
+        rgba(30,55,40,0.95);
+}
+
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+#loading {
+
+    display: none;
+
+    position: absolute;
+
+    top: 16px;
+
+    left: 16px;
+
+    z-index: 30;
+
+    padding: 10px 13px;
+
+    border-radius: 7px;
+
+    background:
+        rgba(0,0,0,0.82);
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   LEGEND
+========================================================= */
+
+#legend {
+
+    position: absolute;
+
+    bottom: 16px;
+
+    right: 16px;
+
+    z-index: 20;
+
+    padding: 11px 13px;
+
+    border-radius: 8px;
+
+    background:
+        rgba(4,10,7,0.90);
+
+    font-size: 10px;
+
+    line-height: 1.9;
+}
+
+
+.legendRow {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 7px;
+}
+
+
+.color {
+
+    width: 18px;
+
+    height: 6px;
+
+    border-radius: 3px;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media(max-width:850px) {
+
+    #app {
+
+        flex-direction: column;
+
+        overflow-y: auto;
+    }
+
+
+    #panel {
+
+        width: 100%;
+
+        min-width: 0;
+
+        height: auto;
+    }
+
+
+    #viewer {
+
+        height: 650px;
+
+        min-height: 650px;
+    }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div id="app">
+
+
+<!-- =========================================================
+     LEFT PANEL
+========================================================= -->
+
+<div id="panel">
+
+
+<h1>
+    🌍 OSM Multi-Mode 3D Route Explorer
+</h1>
+
+
+<div class="description">
+
+    Click multiple points on the OpenStreetMap map to create
+    a route. Each section between two points can use a
+    different transportation mode. The resulting route,
+    buildings and transport infrastructure are displayed
+    in an interactive isometric 3D view.
+
+</div>
+
+
+<!-- =========================================================
+     LOCATION INPUTS
+========================================================= -->
+
+<label>
+    Route points
+</label>
+
+
+<div class="mapHelp">
+
+    Click the map repeatedly to add Point 1, Point 2,
+    Point 3, etc. Drag markers to reposition them.
+
+</div>
+
+
+<div id="pointList"></div>
+
+
+<div class="buttonRow">
+
+    <button
+        id="undoPoint"
+        class="smallButton"
+    >
+        ↩ Undo
+    </button>
+
+
+    <button
+        id="clearPoints"
+        class="smallButton danger"
+    >
+        🗑 Clear
+    </button>
+
+</div>
+
+
+<!-- =========================================================
+     FIRST / LAST LOCATION DISPLAY
+========================================================= -->
+
+<label>
+    First Point
+</label>
+
+
+<input
+    id="startInput"
+    type="text"
+    placeholder="First point"
+/>
+
+
+<label>
+    Final Point
+</label>
+
+
+<input
+    id="destinationInput"
+    type="text"
+    placeholder="Final point"
+/>
+
+
+<!-- =========================================================
+     TRANSPORT MODES
+========================================================= -->
+
+<label>
+    Transportation Mode for Each Segment
+</label>
+
+
+<div id="segmentModes"></div>
+
+
+<div class="modeLegend">
+
+
+    <div class="modeLegendItem">
+
+        <span
+            class="modeDot drivingDot"
+        ></span>
+
+        🚗 Driving
+
+    </div>
+
+
+    <div class="modeLegendItem">
+
+        <span
+            class="modeDot cyclingDot"
+        ></span>
+
+        🚲 Cycling
+
+    </div>
+
+
+    <div class="modeLegendItem">
+
+        <span
+            class="modeDot walkingDot"
+        ></span>
+
+        🚶 Walking
+
+    </div>
+
+
+    <div class="modeLegendItem">
+
+        <span
+            class="modeDot transitDot"
+        ></span>
+
+        🚌 Public Transport
+
+    </div>
+
+
+</div>
+
+
+<div class="transitNotice">
+
+    <strong>Public transport:</strong>
+    the public OSRM server used by this standalone example
+    does not calculate bus/metro/train itineraries. Transit
+    segments are therefore shown in blue but use a walking
+    route geometry as a visualization fallback. Replace
+    the transit routing function with OpenTripPlanner or
+    another GTFS/transit API for real transit routing.
+
+</div>
+
+
+<!-- =========================================================
+     MAP
+========================================================= -->
+
+<div id="map"></div>
+
+
+<!-- =========================================================
+     BUILDING CORRIDOR
+========================================================= -->
+
+<label>
+    3D Building Corridor
+</label>
+
+
+<select id="radiusInput">
+
+    <option value="250">
+        250 m — Fast
+    </option>
+
+    <option value="400" selected>
+        400 m — Recommended
+    </option>
+
+    <option value="600">
+        600 m — More Buildings
+    </option>
+
+    <option value="800">
+        800 m — Dense
+    </option>
+
+</select>
+
+
+<!-- =========================================================
+     BUILDING LIMIT
+========================================================= -->
+
+<label>
+    Maximum Buildings
+</label>
+
+
+<select id="buildingLimit">
+
+    <option value="500">
+        500 — Fast
+    </option>
+
+    <option value="1000" selected>
+        1,000 — Recommended
+    </option>
+
+    <option value="2000">
+        2,000 — Detailed
+    </option>
+
+</select>
+
+
+<!-- =========================================================
+     GENERATE
+========================================================= -->
+
+<button
+    id="generateButton"
+>
+    Generate Multi-Mode 3D Route
+</button>
+
+
+<!-- =========================================================
+     STATUS
+========================================================= -->
+
+<div id="status">
+
+    Click the map to add your first route point.
+
+</div>
+
+
+<!-- =========================================================
+     STATISTICS
+========================================================= -->
+
+<div id="stats">
+
+
+<div class="stat">
+
+    <span>Route distance</span>
+
+    <span
+        id="distance"
+        class="statValue"
+    >
+        —
+    </span>
+
+</div>
+
+
+<div class="stat">
+
+    <span>Travel time</span>
+
+    <span
+        id="duration"
+        class="statValue"
+    >
+        —
+    </span>
+
+</div>
+
+
+<div class="stat">
+
+    <span>Route segments</span>
+
+    <span
+        id="segmentCount"
+        class="statValue"
+    >
+        —
+    </span>
+
+</div>
+
+
+<div class="stat">
+
+    <span>Buildings</span>
+
+    <span
+        id="buildingCount"
+        class="statValue"
+    >
+        —
+    </span>
+
+</div>
+
+
+<div class="stat">
+
+    <span>Bus stops</span>
+
+    <span
+        id="busCount"
+        class="statValue"
+    >
+        —
+    </span>
+
+</div>
+
+
+<div class="stat">
+
+    <span>Railway stations</span>
+
+    <span
+        id="stationCount"
+        class="statValue"
+    >
+        —
+    </span>
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+<!-- =========================================================
+     3D VIEWER
+========================================================= -->
+
+<div id="viewer">
+
+
+<div id="threeContainer"></div>
+
+
+<div id="loading">
+    Loading...
+</div>
+
+
+<div id="viewControls">
+
+
+<button
+    id="zoomIn"
+    class="viewButton"
+    title="Zoom in"
+>
+    +
+</button>
+
+
+<button
+    id="zoomOut"
+    class="viewButton"
+    title="Zoom out"
+>
+    −
+</button>
+
+
+<button
+    id="resetView"
+    class="viewButton"
+    title="Reset view"
+>
+    ⌂
+</button>
+
+
+</div>
+
+
+<!-- =========================================================
+     3D LEGEND
+========================================================= -->
+
+<div id="legend">
+
+
+<div class="legendRow">
+
+    <div
+        class="color"
+        style="background:#ff3048"
+    ></div>
+
+    🚗 Driving
+
+</div>
+
+
+<div class="legendRow">
+
+    <div
+        class="color"
+        style="background:#ffd42a"
+    ></div>
+
+    🚲 Cycling
+
+</div>
+
+
+<div class="legendRow">
+
+    <div
+        class="color"
+        style="background:#20ed72"
+    ></div>
+
+    🚶 Walking
+
+</div>
+
+
+<div class="legendRow">
+
+    <div
+        class="color"
+        style="background:#00aaff"
+    ></div>
+
+    🚌 Public transport
+
+</div>
+
+
+<div class="legendRow">
+
+    <div
+        class="color"
+        style="background:#77827c"
+    ></div>
+
+    Buildings
+
+</div>
+
+
+<div class="legendRow">
+
+    <div
+        class="color"
+        style="background:#ff972c"
+    ></div>
+
+    Railway stations
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+<script>
+
+
+/* =========================================================
+   GLOBAL VARIABLES
+========================================================= */
+
+let map;
+
+let routePoints = [];
+
+let routeMarkers = [];
+
+let routeLayers = [];
+
+let segmentModes = [];
+
+
+let scene;
+
+let camera;
+
+let renderer;
+
+let controls;
+
+let ground;
+
+
+let generatedObjects = [];
+
+
+let cameraTarget =
+    new THREE.Vector3(
+        0,
+        0,
+        0
+    );
+
+
+/* =========================================================
+   DEFAULT LOCATION
+========================================================= */
+
+const DEFAULT_LOCATION = [
+
+    19.0760,
+
+    72.8777
+
+];
+
+
+/* =========================================================
+   TRANSPORT MODES
+========================================================= */
+
+const TRANSPORT_MODES = {
+
+    driving: {
+
+        name:
+            "🚗 Driving",
+
+        color:
+            0xff3048,
+
+        cssColor:
+            "#ff3048",
+
+        profile:
+            "driving"
+
+    },
+
+
+    cycling: {
+
+        name:
+            "🚲 Cycling",
+
+        color:
+            0xffd42a,
+
+        cssColor:
+            "#ffd42a",
+
+        profile:
+            "bike"
+
+    },
+
+
+    walking: {
+
+        name:
+            "🚶 Walking",
+
+        color:
+            0x20ed72,
+
+        cssColor:
+            "#20ed72",
+
+        profile:
+            "foot"
+
+    },
+
+
+    transit: {
+
+        name:
+            "🚌 Public Transport",
+
+        color:
+            0x00aaff,
+
+        cssColor:
+            "#00aaff",
+
+        profile:
+            null
+
+    }
+
+};
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+function setStatus(
+    text,
+    type = ""
+) {
+
+    const status =
+        document.getElementById(
+            "status"
+        );
+
+
+    status.innerText =
+        text;
+
+
+    status.className =
+        "";
+
+
+    if (
+        type
+    ) {
+
+        status.classList.add(
+            type
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+function loading(
+    show,
+    text = "Loading..."
+) {
+
+    const element =
+        document.getElementById(
+            "loading"
+        );
+
+
+    element.innerText =
+        text;
+
+
+    element.style.display =
+        show
+            ? "block"
+            : "none";
+
+}
+
+
+/* =========================================================
+   INITIALIZE MAP
+========================================================= */
+
+function initializeMap() {
+
+    map =
+        L.map(
+            "map"
+        ).setView(
+
+            DEFAULT_LOCATION,
+
+            12
+
+        );
+
+
+    L.tileLayer(
+
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+
+        {
+
+            maxZoom:
+                19,
+
+            attribution:
+                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+
+        }
+
+    ).addTo(
+        map
+    );
+
+
+    /*
+     * Every map click adds
+     * another route point.
+     */
+
+    map.on(
+        "click",
+        function(event) {
+
+            addRoutePoint(
+
+                event.latlng.lat,
+
+                event.latlng.lng
+
+            );
+
+        }
+    );
+
+
+    setTimeout(
+        () => map.invalidateSize(),
+        400
+    );
+
+}
+
+
+/* =========================================================
+   ADD ROUTE POINT
+========================================================= */
+
+function addRoutePoint(
+    lat,
+    lon
+) {
+
+    const point = {
+
+        lat:
+            lat,
+
+        lon:
+            lon
+
+    };
+
+
+    routePoints.push(
+        point
+    );
+
+
+    /*
+     * Create marker.
+     */
+
+    const marker =
+        L.marker(
+
+            [
+                lat,
+                lon
+            ],
+
+            {
+
+                draggable:
+                    true
+
+            }
+
+        ).addTo(
+            map
+        );
+
+
+    marker.bindTooltip(
+
+        `Point ${routePoints.length}`,
+
+        {
+
+            permanent:
+                true,
+
+            direction:
+                "top"
+
+        }
+
+    );
+
+
+    /*
+     * Dragging a point.
+     */
+
+    marker.on(
+        "dragend",
+        function(event) {
+
+            const index =
+                routeMarkers.indexOf(
+                    marker
+                );
+
+
+            if (
+                index < 0
+            ) {
+
+                return;
+
+            }
+
+
+            const position =
+                event.target.getLatLng();
+
+
+            routePoints[index] = {
+
+                lat:
+                    position.lat,
+
+                lon:
+                    position.lng
+
+            };
+
+
+            updatePointList();
+
+            setStatus(
+
+                `Point ${index + 1} moved. ` +
+                `Generate the route again.`
+
+            );
+
+        }
+    );
+
+
+    routeMarkers.push(
+        marker
+    );
+
+
+    /*
+     * Every new point after the first
+     * creates a new route segment.
+     */
+
+    if (
+        routePoints.length >= 2
+    ) {
+
+        segmentModes.push(
+            "driving"
+        );
+
+    }
+
+
+    updatePointList();
+
+    updateSegmentModeControls();
+
+
+    setStatus(
+
+        `${routePoints.length} point(s) selected. ` +
+        `Add another point or generate the route.`
+
+    );
+
+}
+
+
+/* =========================================================
+   UPDATE POINT LIST
+========================================================= */
+
+function updatePointList() {
+
+    const container =
+        document.getElementById(
+            "pointList"
+        );
+
+
+    container.innerHTML =
+        "";
+
+
+    routePoints.forEach(
+        (point, index) => {
+
+            const item =
+                document.createElement(
+                    "div"
+                );
+
+
+            item.className =
+                "pointItem";
+
+
+            const number =
+                document.createElement(
+                    "div"
+                );
+
+
+            number.className =
+                "pointNumber";
+
+
+            number.innerText =
+                index + 1;
+
+
+            const coordinates =
+                document.createElement(
+                    "div"
+                );
+
+
+            coordinates.className =
+                "pointCoordinates";
+
+
+            coordinates.innerText =
+
+                `${point.lat.toFixed(6)}, ` +
+                `${point.lon.toFixed(6)}`;
+
+
+            const remove =
+                document.createElement(
+                    "button"
+                );
+
+
+            remove.className =
+                "removePoint";
+
+
+            remove.innerText =
+                "×";
+
+
+            remove.title =
+                "Remove this point";
+
+
+            remove.onclick =
+                function() {
+
+                    removeRoutePoint(
+                        index
+                    );
+
+                };
+
+
+            item.appendChild(
+                number
+            );
+
+
+            item.appendChild(
+                coordinates
+            );
+
+
+            item.appendChild(
+                remove
+            );
+
+
+            container.appendChild(
+                item
+            );
+
+        }
+    );
+
+
+    /*
+     * First point.
+     */
+
+    const startInput =
+        document.getElementById(
+            "startInput"
+        );
+
+
+    const destinationInput =
+        document.getElementById(
+            "destinationInput"
+        );
+
+
+    if (
+        routePoints.length > 0
+    ) {
+
+        const first =
+            routePoints[0];
+
+
+        startInput.value =
+
+            `${first.lat.toFixed(6)}, ` +
+            `${first.lon.toFixed(6)}`;
+
+    }
+
+    else {
+
+        startInput.value =
+            "";
+
+    }
+
+
+    /*
+     * Last point.
+     */
+
+    if (
+        routePoints.length > 1
+    ) {
+
+        const last =
+            routePoints[
+                routePoints.length - 1
+            ];
+
+
+        destinationInput.value =
+
+            `${last.lat.toFixed(6)}, ` +
+            `${last.lon.toFixed(6)}`;
+
+    }
+
+    else {
+
+        destinationInput.value =
+            "";
+
+    }
+
+}
+
+
+/* =========================================================
+   REMOVE ROUTE POINT
+========================================================= */
+
+function removeRoutePoint(
+    index
+) {
+
+    if (
+        index < 0 ||
+        index >= routePoints.length
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+     * Remove marker.
+     */
+
+    if (
+        routeMarkers[index]
+    ) {
+
+        map.removeLayer(
+            routeMarkers[index]
+        );
+
+    }
+
+
+    routeMarkers.splice(
+        index,
+        1
+    );
+
+
+    routePoints.splice(
+        index,
+        1
+    );
+
+
+    /*
+     * Rebuild segment modes.
+     */
+
+    const oldModes =
+        [...segmentModes];
+
+
+    segmentModes = [];
+
+
+    for (
+        let i = 0;
+
+        i < routePoints.length - 1;
+
+        i++
+    ) {
+
+        /*
+         * Preserve the closest
+         * existing mode where possible.
+         */
+
+        segmentModes.push(
+
+            oldModes[
+                Math.min(
+                    i,
+                    oldModes.length - 1
+                )
+            ] ||
+            "driving"
+
+        );
+
+    }
+
+
+    refreshMarkerLabels();
+
+    updatePointList();
+
+    updateSegmentModeControls();
+
+
+    setStatus(
+        "Point removed."
+    );
+
+}
+
+
+/* =========================================================
+   REFRESH MARKER LABELS
+========================================================= */
+
+function refreshMarkerLabels() {
+
+    routeMarkers.forEach(
+        (marker, index) => {
+
+            marker.unbindTooltip();
+
+
+            marker.bindTooltip(
+
+                `Point ${index + 1}`,
+
+                {
+
+                    permanent:
+                        true,
+
+                    direction:
+                        "top"
+
+                }
+
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   UNDO LAST POINT
+========================================================= */
+
+document
+    .getElementById(
+        "undoPoint"
+    )
+    .onclick =
+    function() {
+
+        if (
+            routePoints.length === 0
+        ) {
+
+            return;
+
+        }
+
+
+        removeRoutePoint(
+
+            routePoints.length - 1
+
+        );
+
+    };
+
+
+/* =========================================================
+   CLEAR ALL POINTS
+========================================================= */
+
+document
+    .getElementById(
+        "clearPoints"
+    )
+    .onclick =
+    function() {
+
+        routeMarkers.forEach(
+            marker => {
+
+                map.removeLayer(
+                    marker
+                );
+
+            }
+        );
+
+
+        routeMarkers = [];
+
+        routePoints = [];
+
+        segmentModes = [];
+
+
+        routeLayers.forEach(
+            layer => {
+
+                map.removeLayer(
+                    layer
+                );
+
+            }
+        );
+
+
+        routeLayers = [];
+
+
+        updatePointList();
+
+        updateSegmentModeControls();
+
+
+        clearGeneratedObjects();
+
+
+        document
+            .getElementById(
+                "stats"
+            )
+            .style.display =
+                "none";
+
+
+        setStatus(
+            "All route points cleared."
+        );
+
+    };
+
+
+/* =========================================================
+   UPDATE SEGMENT MODE CONTROLS
+========================================================= */
+
+function updateSegmentModeControls() {
+
+    const container =
+        document.getElementById(
+            "segmentModes"
+        );
+
+
+    container.innerHTML =
+        "";
+
+
+    if (
+        routePoints.length < 2
+    ) {
+
+        return;
+
+    }
+
+
+    for (
+        let i = 0;
+
+        i < routePoints.length - 1;
+
+        i++
+    ) {
+
+        const wrapper =
+            document.createElement(
+                "div"
+            );
+
+
+        wrapper.className =
+            "segmentMode";
+
+
+        const label =
+            document.createElement(
+                "div"
+            );
+
+
+        label.className =
+            "segmentLabel";
+
+
+        label.innerText =
+
+            `Point ${i + 1} → ${i + 2}`;
+
+
+        const select =
+            document.createElement(
+                "select"
+            );
+
+
+        select.innerHTML = `
+
+            <option value="driving">
+                🚗 Driving
+            </option>
+
+            <option value="cycling">
+                🚲 Cycling
+            </option>
+
+            <option value="walking">
+                🚶 Walking
+            </option>
+
+            <option value="transit">
+                🚌 Public Transport
+            </option>
+
+        `;
+
+
+        select.value =
+
+            segmentModes[i] ||
+            "driving";
+
+
+        select.addEventListener(
+            "change",
+            function() {
+
+                segmentModes[i] =
+                    this.value;
+
+
+                setStatus(
+
+                    `Segment ${i + 1} set to ` +
+                    `${TRANSPORT_MODES[this.value].name}. ` +
+                    `Generate the route to apply the change.`
+
+                );
+
+            }
+        );
+
+
+        wrapper.appendChild(
+            label
+        );
+
+
+        wrapper.appendChild(
+            select
+        );
+
+
+        container.appendChild(
+            wrapper
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   GEOCODING
+========================================================= */
+
+async function geocode(
+    query
+) {
+
+    const coordinateRegex =
+        /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/;
+
+
+    const match =
+        query.match(
+            coordinateRegex
+        );
+
+
+    if (
+        match
+    ) {
+
+        return {
+
+            lat:
+                Number(
+                    match[1]
+                ),
+
+            lon:
+                Number(
+                    match[2]
+                )
+
+        };
+
+    }
+
+
+    const params =
+        new URLSearchParams({
+
+            q:
+                query,
+
+            format:
+                "json",
+
+            limit:
+                "1"
+
+        });
+
+
+    const response =
+        await fetch(
+
+            "https://nominatim.openstreetmap.org/search?" +
+            params.toString(),
+
+            {
+
+                headers: {
+
+                    "Accept":
+                        "application/json"
+
+                }
+
+            }
+
+        );
+
+
+    if (
+        !response.ok
+    ) {
+
+        throw new Error(
+
+            `Geocoding failed: HTTP ${response.status}`
+
+        );
+
+    }
+
+
+    const data =
+        await response.json();
+
+
+    if (
+        !data.length
+    ) {
+
+        throw new Error(
+
+            `Location not found: ${query}`
+
+        );
+
+    }
+
+
+    return {
+
+        lat:
+            Number(
+                data[0].lat
+            ),
+
+        lon:
+            Number(
+                data[0].lon
+            )
+
+    };
+
+}
+
+
+/* =========================================================
+   OSRM ROUTING
+========================================================= */
+
+async function getOSRMRoute(
+    start,
+    end,
+    profile
+) {
+
+    const coordinates =
+
+        `${start.lon},${start.lat};` +
+        `${end.lon},${end.lat}`;
+
+
+    const url =
+
+        `https://router.project-osrm.org/route/v1/` +
+
+        `${profile}/` +
+
+        `${coordinates}` +
+
+        `?overview=full&geometries=geojson`;
+
+
+    const response =
+        await fetch(
+            url
+        );
+
+
+    if (
+        !response.ok
+    ) {
+
+        throw new Error(
+
+            `Routing server returned HTTP ${response.status}`
+
+        );
+
+    }
+
+
+    const data =
+        await response.json();
+
+
+    if (
+        data.code !== "Ok"
+    ) {
+
+        throw new Error(
+
+            data.message ||
+            `OSRM error: ${data.code}`
+
+        );
+
+    }
+
+
+    return data.routes[0];
+
+}
+
+
+/* =========================================================
+   GET ROUTE FOR SEGMENT
+========================================================= */
+
+async function getSegmentRoute(
+    start,
+    end,
+    mode
+) {
+
+    /*
+     * Normal OSRM profiles.
+     */
+
+    if (
+        mode === "driving"
+    ) {
+
+        return await getOSRMRoute(
+
+            start,
+
+            end,
+
+            "driving"
+
+        );
+
+    }
+
+
+    if (
+        mode === "cycling"
+    ) {
+
+        return await getOSRMRoute(
+
+            start,
+
+            end,
+
+            "bike"
+
+        );
+
+    }
+
+
+    if (
+        mode === "walking"
+    ) {
+
+        return await getOSRMRoute(
+
+            start,
+
+            end,
+
+            "foot"
+
+        );
+
+    }
+
+
+    /*
+     * Transit fallback.
+     *
+     * OSRM does not calculate transit.
+     *
+     * We use walking geometry solely
+     * to produce a map/3D visualization.
+     */
+
+    if (
+        mode === "transit"
+    ) {
+
+        const route =
+            await getOSRMRoute(
+
+                start,
+
+                end,
+
+                "foot"
+
+            );
+
+
+        return {
+
+            ...route,
+
+            isTransitFallback:
+                true
+
+        };
+
+    }
+
+
+    throw new Error(
+        `Unsupported transportation mode: ${mode}`
+    );
+
+}
+
+
+/* =========================================================
+   COMPLETE MULTI-POINT ROUTE
+========================================================= */
+
+async function getCompleteRoute() {
+
+    if (
+        routePoints.length < 2
+    ) {
+
+        throw new Error(
+
+            "Please select at least two points."
+
+        );
+
+    }
+
+
+    const segments = [];
+
+
+    for (
+        let i = 0;
+
+        i < routePoints.length - 1;
+
+        i++
+    ) {
+
+        const start =
+            routePoints[i];
+
+
+        const end =
+            routePoints[i + 1];
+
+
+        const mode =
+            segmentModes[i] ||
+            "driving";
+
+
+        setStatus(
+
+            `Calculating segment ${i + 1} of ` +
+            `${routePoints.length - 1}: ` +
+            `${TRANSPORT_MODES[mode].name}`
+
+        );
+
+
+        loading(
+
+            true,
+
+            `Routing segment ${i + 1}...`
+
+        );
+
+
+        const route =
+            await getSegmentRoute(
+
+                start,
+
+                end,
+
+                mode
+
+            );
+
+
+        segments.push({
+
+            route:
+                route,
+
+            mode:
+                mode,
+
+            start:
+                start,
+
+            end:
+                end
+
+        });
+
+    }
+
+
+    return segments;
+
+}
+
+
+/* =========================================================
+   DISPLAY COLOURED ROUTES ON LEAFLET
+========================================================= */
+
+function displayCompleteRoute(
+    segments
+) {
+
+    routeLayers.forEach(
+        layer => {
+
+            map.removeLayer(
+                layer
+            );
+
+        }
+    );
+
+
+    routeLayers = [];
+
+
+    const allBounds = [];
+
+
+    segments.forEach(
+        segment => {
+
+            const coordinates =
+                segment.route
+                    .geometry
+                    .coordinates;
+
+
+            const latLngs =
+                coordinates.map(
+                    coordinate => [
+
+                        coordinate[1],
+
+                        coordinate[0]
+
+                    ]
+                );
+
+
+            const modeInfo =
+                TRANSPORT_MODES[
+                    segment.mode
+                ];
+
+
+            const line =
+                L.polyline(
+
+                    latLngs,
+
+                    {
+
+                        color:
+                            modeInfo.cssColor,
+
+                        weight:
+                            7,
+
+                        opacity:
+                            0.95
+
+                    }
+
+                ).addTo(
+                    map
+                );
+
+
+            line.bindTooltip(
+
+                modeInfo.name,
+
+                {
+                    sticky:
+                        true
+                }
+
+            );
+
+
+            routeLayers.push(
+                line
+            );
+
+
+            latLngs.forEach(
+                point => {
+
+                    allBounds.push(
+                        point
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+    if (
+        allBounds.length
+    ) {
+
+        map.fitBounds(
+
+            L.latLngBounds(
+                allBounds
+            ),
+
+            {
+
+                padding:
+                    [25, 25]
+
+            }
+
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   SAMPLE ROUTE
+========================================================= */
+
+function sampleRoute(
+    coordinates,
+    count = 8
+) {
+
+    if (
+        coordinates.length <= count
+    ) {
+
+        return coordinates;
+
+    }
+
+
+    const result = [];
+
+
+    for (
+        let i = 0;
+
+        i < count;
+
+        i++
+    ) {
+
+        const index =
+            Math.round(
+
+                i *
+                (
+                    coordinates.length - 1
+                ) /
+                (
+                    count - 1
+                )
+
+            );
+
+
+        result.push(
+            coordinates[index]
+        );
+
+    }
+
+
+    return result;
+
+}
+
+
+/* =========================================================
+   OVERPASS OSM FEATURES
+========================================================= */
+
+async function getOSMFeatures(
+    route,
+    radius
+) {
+
+    const routeCoordinates =
+        route.geometry.coordinates;
+
+
+    /*
+     * Dynamic sample count.
+     *
+     * This makes the corridor follow
+     * long routes more reliably.
+     */
+
+    const sampleCount =
+        Math.min(
+
+            Math.max(
+
+                Math.ceil(
+                    routeCoordinates.length / 80
+                ),
+
+                8
+
+            ),
+
+            30
+
+        );
+
+
+    const samples =
+        sampleRoute(
+
+            routeCoordinates,
+
+            sampleCount
+
+        );
+
+
+    const statements = [];
+
+
+    samples.forEach(
+        coordinate => {
+
+            const lon =
+                coordinate[0];
+
+
+            const lat =
+                coordinate[1];
+
+
+            /*
+             * Buildings.
+             */
+
+            statements.push(
+
+                `way["building"](around:${radius},${lat},${lon});`
+
+            );
+
+
+            /*
+             * Bus stops.
+             */
+
+            statements.push(
+
+                `node["highway"="bus_stop"](around:${radius},${lat},${lon});`
+
+            );
+
+
+            statements.push(
+
+                `node["public_transport"="platform"](around:${radius},${lat},${lon});`
+
+            );
+
+
+            /*
+             * Railway stations.
+             */
+
+            statements.push(
+
+                `node["railway"="station"](around:${radius},${lat},${lon});`
+
+            );
+
+
+            statements.push(
+
+                `way["railway"="station"](around:${radius},${lat},${lon});`
+
+            );
+
+        }
+    );
+
+
+    const query =
+
+        `[out:json][timeout:90];` +
+
+        `(` +
+
+        statements.join("") +
+
+        `);` +
+
+        `out geom;`;
+
+
+    const endpoints = [
+
+        "https://overpass-api.de/api/interpreter",
+
+        "https://overpass.private.coffee/api/interpreter"
+
+    ];
+
+
+    let lastError;
+
+
+    for (
+        const endpoint of endpoints
+    ) {
+
+        try {
+
+            loading(
+
+                true,
+
+                "Downloading OSM buildings and transport features..."
+
+            );
+
+
+            const controller =
+                new AbortController();
+
+
+            const timer =
+                setTimeout(
+
+                    () =>
+                        controller.abort(),
+
+                    95000
+
+                );
+
+
+            const response =
+                await fetch(
+
+                    endpoint,
+
+                    {
+
+                        method:
+                            "POST",
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/x-www-form-urlencoded"
+
+                        },
+
+                        body:
+
+                            "data=" +
+                            encodeURIComponent(
+                                query
+                            ),
+
+                        signal:
+                            controller.signal
+
+                    }
+
+                );
+
+
+            clearTimeout(
+                timer
+            );
+
+
+            if (
+                !response.ok
+            ) {
+
+                throw new Error(
+
+                    `Overpass HTTP ${response.status}`
+
+                );
+
+            }
+
+
+            const data =
+                await response.json();
+
+
+            const unique =
+                new Map();
+
+
+            data.elements.forEach(
+                element => {
+
+                    const key =
+                        `${element.type}/${element.id}`;
+
+
+                    if (
+                        !unique.has(
+                            key
+                        )
+                    ) {
+
+                        unique.set(
+                            key,
+                            element
+                        );
+
+                    }
+
+                }
+            );
+
+
+            const buildings = [];
+
+            const busStops = [];
+
+            const stations = [];
+
+
+            unique.forEach(
+                element => {
+
+                    const tags =
+                        element.tags || {};
+
+
+                    if (
+
+                        tags.building &&
+
+                        element.geometry &&
+
+                        element.geometry.length >= 3
+
+                    ) {
+
+                        buildings.push(
+                            element
+                        );
+
+                    }
+
+
+                    if (
+                        tags.highway ===
+                        "bus_stop"
+                    ) {
+
+                        busStops.push(
+                            element
+                        );
+
+                    }
+
+
+                    if (
+                        tags.public_transport ===
+                        "platform"
+                    ) {
+
+                        busStops.push(
+                            element
+                        );
+
+                    }
+
+
+                    if (
+                        tags.railway ===
+                        "station"
+                    ) {
+
+                        stations.push(
+                            element
+                        );
+
+                    }
+
+                }
+            );
+
+
+            return {
+
+                buildings:
+                    buildings,
+
+                busStops:
+                    busStops,
+
+                stations:
+                    stations
+
+            };
+
+        }
+
+        catch (
+            error
+        ) {
+
+            console.warn(
+
+                "Overpass failure:",
+
+                endpoint,
+
+                error
+
+            );
+
+
+            lastError =
+                error;
+
+        }
+
+    }
+
+
+    console.warn(
+
+        "No Overpass server available.",
+
+        lastError
+
+    );
+
+
+    return {
+
+        buildings: [],
+
+        busStops: [],
+
+        stations: []
+
+    };
+
+}
+
+
+/* =========================================================
+   THREE.JS INITIALIZATION
+========================================================= */
+
+function initializeThree() {
+
+    const container =
+        document.getElementById(
+            "threeContainer"
+        );
+
+
+    scene =
+        new THREE.Scene();
+
+
+    scene.background =
+        new THREE.Color(
+            0x07100b
+        );
+
+
+    const aspect =
+        container.clientWidth /
+        container.clientHeight;
+
+
+    camera =
+        new THREE.PerspectiveCamera(
+
+            45,
+
+            aspect,
+
+            0.1,
+
+            100000
+
+        );
+
+
+    camera.position.set(
+
+        150,
+
+        150,
+
+        150
+
+    );
+
+
+    renderer =
+        new THREE.WebGLRenderer({
+
+            antialias:
+                true,
+
+            powerPreference:
+                "high-performance"
+
+        });
+
+
+    renderer.setPixelRatio(
+
+        Math.min(
+
+            window.devicePixelRatio,
+
+            2
+
+        )
+
+    );
+
+
+    renderer.setSize(
+
+        container.clientWidth,
+
+        container.clientHeight
+
+    );
+
+
+    container.appendChild(
+        renderer.domElement
+    );
+
+
+    controls =
+        new THREE.OrbitControls(
+
+            camera,
+
+            renderer.domElement
+
+        );
+
+
+    controls.enableDamping =
+        true;
+
+
+    controls.dampingFactor =
+        0.08;
+
+
+    controls.enableZoom =
+        true;
+
+
+    controls.zoomSpeed =
+        1.0;
+
+
+    controls.enablePan =
+        true;
+
+
+    controls.panSpeed =
+        0.8;
+
+
+    controls.rotateSpeed =
+        0.7;
+
+
+    controls.target.copy(
+        cameraTarget
+    );
+
+
+    /*
+     * Lighting.
+     */
+
+    const ambient =
+        new THREE.AmbientLight(
+
+            0xffffff,
+
+            0.65
+
+        );
+
+
+    scene.add(
+        ambient
+    );
+
+
+    const directional =
+        new THREE.DirectionalLight(
+
+            0xffffff,
+
+            1.3
+
+        );
+
+
+    directional.position.set(
+
+        100,
+
+        200,
+
+        100
+
+    );
+
+
+    scene.add(
+        directional
+    );
+
+
+    const fill =
+        new THREE.DirectionalLight(
+
+            0x8ec8ff,
+
+            0.35
+
+        );
+
+
+    fill.position.set(
+
+        -100,
+
+        80,
+
+        -100
+
+    );
+
+
+    scene.add(
+        fill
+    );
+
+
+    /*
+     * Ground.
+     */
+
+    const groundGeometry =
+        new THREE.PlaneGeometry(
+
+            5000,
+
+            5000
+
+        );
+
+
+    const groundMaterial =
+        new THREE.MeshStandardMaterial({
+
+            color:
+                0x0b1710,
+
+            roughness:
+                1
+
+        });
+
+
+    ground =
+        new THREE.Mesh(
+
+            groundGeometry,
+
+            groundMaterial
+
+        );
+
+
+    ground.rotation.x =
+        -Math.PI / 2;
+
+
+    ground.position.y =
+        -0.2;
+
+
+    scene.add(
+        ground
+    );
+
+
+    animate();
+
+}
+
+
+/* =========================================================
+   ANIMATION
+========================================================= */
+
+function animate() {
+
+    requestAnimationFrame(
+        animate
+    );
+
+
+    if (
+        controls
+    ) {
+
+        controls.update();
+
+    }
+
+
+    renderer.render(
+
+        scene,
+
+        camera
+
+    );
+
+}
+
+
+/* =========================================================
+   CLEAR 3D OBJECTS
+========================================================= */
+
+function clearGeneratedObjects() {
+
+    generatedObjects.forEach(
+        object => {
+
+            scene.remove(
+                object
+            );
+
+
+            if (
+                object.geometry
+            ) {
+
+                object.geometry.dispose();
+
+            }
+
+
+            if (
+                object.material
+            ) {
+
+                if (
+                    Array.isArray(
+                        object.material
+                    )
+                ) {
+
+                    object.material.forEach(
+                        material => {
+
+                            material.dispose();
+
+                        }
+                    );
+
+                }
+
+                else {
+
+                    object.material.dispose();
+
+                }
+
+            }
+
+        }
+    );
+
+
+    generatedObjects = [];
+
+}
+
+
+/* =========================================================
+   GEO → METRES
+========================================================= */
+
+function geoToMeters(
+
+    lat,
+
+    lon,
+
+    originLat,
+
+    originLon
+
+) {
+
+    const metersLat =
+        110540;
+
+
+    const metersLon =
+        111320 *
+        Math.cos(
+
+            originLat *
+            Math.PI /
+            180
+
+        );
+
+
+    return {
+
+        x:
+
+            (
+                lon -
+                originLon
+            ) *
+            metersLon,
+
+
+        z:
+
+            -(
+                lat -
+                originLat
+            ) *
+            metersLat
+
+    };
+
+}
+
+
+/* =========================================================
+   MULTI-ROUTE SCENE SCALE
+========================================================= */
+
+function getMultiRouteSceneScale(
+    segments
+) {
+
+    let minX =
+        Infinity;
+
+
+    let maxX =
+        -Infinity;
+
+
+    let minZ =
+        Infinity;
+
+
+    let maxZ =
+        -Infinity;
+
+
+    const firstCoordinate =
+        segments[0]
+            .route
+            .geometry
+            .coordinates[0];
+
+
+    const originLon =
+        firstCoordinate[0];
+
+
+    const originLat =
+        firstCoordinate[1];
+
+
+    segments.forEach(
+        segment => {
+
+            segment.route
+                .geometry
+                .coordinates
+                .forEach(
+                    coordinate => {
+
+                        const p =
+                            geoToMeters(
+
+                                coordinate[1],
+
+                                coordinate[0],
+
+                                originLat,
+
+                                originLon
+
+                            );
+
+
+                        minX =
+                            Math.min(
+                                minX,
+                                p.x
+                            );
+
+
+                        maxX =
+                            Math.max(
+                                maxX,
+                                p.x
+                            );
+
+
+                        minZ =
+                            Math.min(
+                                minZ,
+                                p.z
+                            );
+
+
+                        maxZ =
+                            Math.max(
+                                maxZ,
+                                p.z
+                            );
+
+                    }
+                );
+
+        }
+    );
+
+
+    const width =
+        Math.max(
+
+            maxX - minX,
+
+            maxZ - minZ,
+
+            100
+
+        );
+
+
+    const targetWidth =
+        250;
+
+
+    return {
+
+        scale:
+            targetWidth /
+            width,
+
+        originLat:
+            originLat,
+
+        originLon:
+            originLon
+
+    };
+
+}
+
+
+/* =========================================================
+   BUILDING HEIGHT
+========================================================= */
+
+function getBuildingHeight(
+    tags
+) {
+
+    /*
+     * building:levels
+     */
+
+    if (
+        tags["building:levels"]
+    ) {
+
+        const levels =
+            parseFloat(
+
+                tags["building:levels"]
+
+            );
+
+
+        if (
+            Number.isFinite(
+                levels
+            )
+        ) {
+
+            return Math.max(
+
+                2,
+
+                levels * 3.2
+
+            );
+
+        }
+
+    }
+
+
+    /*
+     * height
+     */
+
+    if (
+        tags.height
+    ) {
+
+        const height =
+            parseFloat(
+
+                String(
+                    tags.height
+                )
+                .replace(
+                    /[^0-9.]/g,
+                    ""
+                )
+
+            );
+
+
+        if (
+            Number.isFinite(
+                height
+            )
+        ) {
+
+            return Math.max(
+
+                2,
+
+                height
+
+            );
+
+        }
+
+    }
+
+
+    /*
+     * Defaults.
+     */
+
+    if (
+        tags.building ===
+        "house"
+    ) {
+
+        return 6;
+
+    }
+
+
+    if (
+        tags.building ===
+        "apartments"
+    ) {
+
+        return 15;
+
+    }
+
+
+    if (
+        tags.building ===
+        "commercial"
+    ) {
+
+        return 12;
+
+    }
+
+
+    if (
+        tags.building ===
+        "industrial"
+    ) {
+
+        return 8;
+
+    }
+
+
+    return 7;
+
+}
+
+
+/* =========================================================
+   BUILDING COLOR
+========================================================= */
+
+function buildingColor(
+    tags
+) {
+
+    if (
+        tags.building ===
+        "commercial"
+    ) {
+
+        return 0x9b8469;
+
+    }
+
+
+    if (
+        tags.building ===
+        "industrial"
+    ) {
+
+        return 0x737e7a;
+
+    }
+
+
+    if (
+        tags.building ===
+        "apartments"
+    ) {
+
+        return 0x7c8e9a;
+
+    }
+
+
+    if (
+        tags.building ===
+        "school"
+    ) {
+
+        return 0x879b78;
+
+    }
+
+
+    if (
+        tags.building ===
+        "hospital"
+    ) {
+
+        return 0xb18d98;
+
+    }
+
+
+    return 0x77827c;
+
+}
+
+
+/* =========================================================
+   CREATE BUILDING
+========================================================= */
+
+function createBuilding(
+    element,
+    projection
+) {
+
+    if (
+
+        !element.geometry ||
+
+        element.geometry.length < 3
+
+    ) {
+
+        return;
+
+    }
+
+
+    const points =
+        element.geometry.map(
+            point => {
+
+                const meters =
+                    geoToMeters(
+
+                        point.lat,
+
+                        point.lon,
+
+                        projection.originLat,
+
+                        projection.originLon
+
+                    );
+
+
+                return {
+
+                    x:
+                        meters.x *
+                        projection.scale,
+
+                    z:
+                        meters.z *
+                        projection.scale
+
+                };
+
+            }
+        );
+
+
+    let centerX = 0;
+
+    let centerZ = 0;
+
+
+    points.forEach(
+        point => {
+
+            centerX +=
+                point.x;
+
+            centerZ +=
+                point.z;
+
+        }
+    );
+
+
+    centerX /=
+        points.length;
+
+
+    centerZ /=
+        points.length;
+
+
+    const shape =
+        new THREE.Shape();
+
+
+    points.forEach(
+        (point, index) => {
+
+            const x =
+                point.x -
+                centerX;
+
+
+            const y =
+                -(
+                    point.z -
+                    centerZ
+                );
+
+
+            if (
+                index === 0
+            ) {
+
+                shape.moveTo(
+                    x,
+                    y
+                );
+
+            }
+
+            else {
+
+                shape.lineTo(
+                    x,
+                    y
+                );
+
+            }
+
+        }
+    );
+
+
+    shape.closePath();
+
+
+    const heightMeters =
+        getBuildingHeight(
+            element.tags || {}
+        );
+
+
+    const height =
+        Math.max(
+
+            1,
+
+            heightMeters *
+            projection.scale
+
+        );
+
+
+    const geometry =
+        new THREE.ExtrudeGeometry(
+
+            shape,
+
+            {
+
+                depth:
+                    height,
+
+                bevelEnabled:
+                    false,
+
+                curveSegments:
+                    1
+
+            }
+
+        );
+
+
+    const material =
+        new THREE.MeshStandardMaterial({
+
+            color:
+                buildingColor(
+                    element.tags || {}
+                ),
+
+            roughness:
+                0.85,
+
+            metalness:
+                0.02
+
+        });
+
+
+    const mesh =
+        new THREE.Mesh(
+
+            geometry,
+
+            material
+
+        );
+
+
+    mesh.rotation.x =
+        -Math.PI / 2;
+
+
+    mesh.position.x =
+        centerX;
+
+
+    mesh.position.z =
+        centerZ;
+
+
+    mesh.position.y =
+        0;
+
+
+    scene.add(
+        mesh
+    );
+
+
+    generatedObjects.push(
+        mesh
+    );
+
+}
+
+
+/* =========================================================
+   ELEMENT CENTER
+========================================================= */
+
+function getElementCenter(
+    element
+) {
+
+    if (
+        Number.isFinite(
+            element.lat
+        )
+    ) {
+
+        return {
+
+            lat:
+                element.lat,
+
+            lon:
+                element.lon
+
+        };
+
+    }
+
+
+    if (
+        element.geometry &&
+        element.geometry.length
+    ) {
+
+        let lat = 0;
+
+        let lon = 0;
+
+
+        element.geometry.forEach(
+            point => {
+
+                lat +=
+                    point.lat;
+
+                lon +=
+                    point.lon;
+
+            }
+        );
+
+
+        return {
+
+            lat:
+                lat /
+                element.geometry.length,
+
+            lon:
+                lon /
+                element.geometry.length
+
+        };
+
+    }
+
+
+    return null;
+
+}
+
+
+/* =========================================================
+   CREATE BUS STOP
+========================================================= */
+
+function createBusStop(
+    element,
+    projection
+) {
+
+    const center =
+        getElementCenter(
+            element
+        );
+
+
+    if (
+        !center
+    ) {
+
+        return;
+
+    }
+
+
+    const meters =
+        geoToMeters(
+
+            center.lat,
+
+            center.lon,
+
+            projection.originLat,
+
+            projection.originLon
+
+        );
+
+
+    const x =
+        meters.x *
+        projection.scale;
+
+
+    const z =
+        meters.z *
+        projection.scale;
+
+
+    const material =
+        new THREE.MeshStandardMaterial({
+
+            color:
+                0x08a9ff,
+
+            emissive:
+                0x006da5,
+
+            emissiveIntensity:
+                0.6
+
+        });
+
+
+    /*
+     * Pole.
+     */
+
+    const poleGeometry =
+        new THREE.CylinderGeometry(
+
+            0.12,
+
+            0.12,
+
+            2.4,
+
+            8
+
+        );
+
+
+    const pole =
+        new THREE.Mesh(
+
+            poleGeometry,
+
+            material
+
+        );
+
+
+    pole.position.set(
+
+        x,
+
+        1.2,
+
+        z
+
+    );
+
+
+    scene.add(
+        pole
+    );
+
+
+    generatedObjects.push(
+        pole
+    );
+
+
+    /*
+     * Marker.
+     */
+
+    const markerGeometry =
+        new THREE.SphereGeometry(
+
+            0.38,
+
+            12,
+
+            12
+
+        );
+
+
+    const marker =
+        new THREE.Mesh(
+
+            markerGeometry,
+
+            material
+
+        );
+
+
+    marker.position.set(
+
+        x,
+
+        2.5,
+
+        z
+
+    );
+
+
+    scene.add(
+        marker
+    );
+
+
+    generatedObjects.push(
+        marker
+    );
+
+}
+
+
+/* =========================================================
+   CREATE STATION
+========================================================= */
+
+function createStation(
+    element,
+    projection
+) {
+
+    const center =
+        getElementCenter(
+            element
+        );
+
+
+    if (
+        !center
+    ) {
+
+        return;
+
+    }
+
+
+    const meters =
+        geoToMeters(
+
+            center.lat,
+
+            center.lon,
+
+            projection.originLat,
+
+            projection.originLon
+
+        );
+
+
+    const x =
+        meters.x *
+        projection.scale;
+
+
+    const z =
+        meters.z *
+        projection.scale;
+
+
+    const material =
+        new THREE.MeshStandardMaterial({
+
+            color:
+                0xff972e,
+
+            emissive:
+                0x723800,
+
+            emissiveIntensity:
+                0.4
+
+        });
+
+
+    const geometry =
+        new THREE.BoxGeometry(
+
+            3,
+
+            1.8,
+
+            3
+
+        );
+
+
+    const mesh =
+        new THREE.Mesh(
+
+            geometry,
+
+            material
+
+        );
+
+
+    mesh.position.set(
+
+        x,
+
+        0.9,
+
+        z
+
+    );
+
+
+    scene.add(
+        mesh
+    );
+
+
+    generatedObjects.push(
+        mesh
+    );
+
+
+    /*
+     * Roof.
+     */
+
+    const roofGeometry =
+        new THREE.ConeGeometry(
+
+            2.2,
+
+            1,
+
+            4
+
+        );
+
+
+    const roof =
+        new THREE.Mesh(
+
+            roofGeometry,
+
+            material
+
+        );
+
+
+    roof.position.set(
+
+        x,
+
+        2.25,
+
+        z
+
+    );
+
+
+    roof.rotation.y =
+        Math.PI / 4;
+
+
+    scene.add(
+        roof
+    );
+
+
+    generatedObjects.push(
+        roof
+    );
+
+}
+
+
+/* =========================================================
+   CREATE COLOURED MULTI-MODE ROUTE
+========================================================= */
+
+function createMultiRoute(
+    segments,
+    projection
+) {
+
+    segments.forEach(
+        segment => {
+
+            const points = [];
+
+
+            segment.route
+                .geometry
+                .coordinates
+                .forEach(
+                    coordinate => {
+
+                        const meters =
+                            geoToMeters(
+
+                                coordinate[1],
+
+                                coordinate[0],
+
+                                projection.originLat,
+
+                                projection.originLon
+
+                            );
+
+
+                        points.push(
+
+                            new THREE.Vector3(
+
+                                meters.x *
+                                projection.scale,
+
+                                1.5,
+
+                                meters.z *
+                                projection.scale
+
+                            )
+
+                        );
+
+                    }
+                );
+
+
+            if (
+                points.length < 2
+            ) {
+
+                return;
+
+            }
+
+
+            const modeInfo =
+                TRANSPORT_MODES[
+                    segment.mode
+                ];
+
+
+            /*
+             * Glow.
+             */
+
+            const glowGeometry =
+                new THREE.BufferGeometry()
+                    .setFromPoints(
+                        points
+                    );
+
+
+            const glowMaterial =
+                new THREE.LineBasicMaterial({
+
+                    color:
+                        modeInfo.color,
+
+                    transparent:
+                        true,
+
+                    opacity:
+                        0.25
+
+                });
+
+
+            const glow =
+                new THREE.Line(
+
+                    glowGeometry,
+
+                    glowMaterial
+
+                );
+
+
+            scene.add(
+                glow
+            );
+
+
+            generatedObjects.push(
+                glow
+            );
+
+
+            /*
+             * Main route line.
+             */
+
+            const geometry =
+                new THREE.BufferGeometry()
+                    .setFromPoints(
+                        points
+                    );
+
+
+            const material =
+                new THREE.LineBasicMaterial({
+
+                    color:
+                        modeInfo.color
+
+                });
+
+
+            const line =
+                new THREE.Line(
+
+                    geometry,
+
+                    material
+
+                );
+
+
+            scene.add(
+                line
+            );
+
+
+            generatedObjects.push(
+                line
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   CREATE 3D MARKER
+========================================================= */
+
+function createMarker(
+    lat,
+    lon,
+    projection,
+    color
+) {
+
+    const meters =
+        geoToMeters(
+
+            lat,
+
+            lon,
+
+            projection.originLat,
+
+            projection.originLon
+
+        );
+
+
+    const x =
+        meters.x *
+        projection.scale;
+
+
+    const z =
+        meters.z *
+        projection.scale;
+
+
+    const material =
+        new THREE.MeshStandardMaterial({
+
+            color:
+                color,
+
+            emissive:
+                color,
+
+            emissiveIntensity:
+                0.45
+
+        });
+
+
+    /*
+     * Pole.
+     */
+
+    const poleGeometry =
+        new THREE.CylinderGeometry(
+
+            0.15,
+
+            0.15,
+
+            5,
+
+            10
+
+        );
+
+
+    const pole =
+        new THREE.Mesh(
+
+            poleGeometry,
+
+            material
+
+        );
+
+
+    pole.position.set(
+
+        x,
+
+        2.5,
+
+        z
+
+    );
+
+
+    scene.add(
+        pole
+    );
+
+
+    generatedObjects.push(
+        pole
+    );
+
+
+    /*
+     * Sphere.
+     */
+
+    const sphereGeometry =
+        new THREE.SphereGeometry(
+
+            0.75,
+
+            16,
+
+            16
+
+        );
+
+
+    const sphere =
+        new THREE.Mesh(
+
+            sphereGeometry,
+
+            material
+
+        );
+
+
+    sphere.position.set(
+
+        x,
+
+        5.2,
+
+        z
+
+    );
+
+
+    scene.add(
+        sphere
+    );
+
+
+    generatedObjects.push(
+        sphere
+    );
+
+}
+
+
+/* =========================================================
+   RENDER COMPLETE 3D SCENE
+========================================================= */
+
+function renderScene(
+
+    segments,
+
+    osm,
+
+    start,
+
+    destination
+
+) {
+
+    clearGeneratedObjects();
+
+
+    const projection =
+        getMultiRouteSceneScale(
+            segments
+        );
+
+
+    /*
+     * Building limit.
+     */
+
+    const maxBuildings =
+        Number(
+
+            document
+                .getElementById(
+                    "buildingLimit"
+                )
+                .value
+
+        );
+
+
+    const buildings =
+        osm.buildings.slice(
+
+            0,
+
+            maxBuildings
+
+        );
+
+
+    /*
+     * Buildings.
+     */
+
+    buildings.forEach(
+        building => {
+
+            try {
+
+                createBuilding(
+
+                    building,
+
+                    projection
+
+                );
+
+            }
+
+            catch (
+                error
+            ) {
+
+                console.warn(
+
+                    "Building skipped:",
+
+                    error
+
+                );
+
+            }
+
+        }
+    );
+
+
+    /*
+     * Bus stops.
+     */
+
+    osm.busStops.forEach(
+        stop => {
+
+            try {
+
+                createBusStop(
+
+                    stop,
+
+                    projection
+
+                );
+
+            }
+
+            catch (
+                error
+            ) {
+
+                console.warn(
+
+                    "Bus stop skipped:",
+
+                    error
+
+                );
+
+            }
+
+        }
+    );
+
+
+    /*
+     * Railway stations.
+     */
+
+    osm.stations.forEach(
+        station => {
+
+            try {
+
+                createStation(
+
+                    station,
+
+                    projection
+
+                );
+
+            }
+
+            catch (
+                error
+            ) {
+
+                console.warn(
+
+                    "Station skipped:",
+
+                    error
+
+                );
+
+            }
+
+        }
+    );
+
+
+    /*
+     * Multi-coloured route.
+     */
+
+    createMultiRoute(
+
+        segments,
+
+        projection
+
+    );
+
+
+    /*
+     * Start marker.
+     */
+
+    createMarker(
+
+        start.lat,
+
+        start.lon,
+
+        projection,
+
+        0xff3048
+
+    );
+
+
+    /*
+     * Destination marker.
+     */
+
+    createMarker(
+
+        destination.lat,
+
+        destination.lon,
+
+        projection,
+
+        0xffffff
+
+    );
+
+
+    fitCamera();
+
+}
+
+
+/* =========================================================
+   FIT CAMERA
+========================================================= */
+
+function fitCamera() {
+
+    const box =
+        new THREE.Box3();
+
+
+    generatedObjects.forEach(
+        object => {
+
+            box.expandByObject(
+                object
+            );
+
+        }
+    );
+
+
+    if (
+        box.isEmpty()
+    ) {
+
+        return;
+
+    }
+
+
+    const center =
+        new THREE.Vector3();
+
+
+    const size =
+        new THREE.Vector3();
+
+
+    box.getCenter(
+        center
+    );
+
+
+    box.getSize(
+        size
+    );
+
+
+    cameraTarget =
+        center.clone();
+
+
+    const largest =
+        Math.max(
+
+            size.x,
+
+            size.y,
+
+            size.z,
+
+            20
+
+        );
+
+
+    const distance =
+        largest * 1.7;
+
+
+    /*
+     * Isometric-style camera.
+     */
+
+    camera.position.set(
+
+        center.x +
+        distance,
+
+        center.y +
+        distance,
+
+        center.z +
+        distance
+
+    );
+
+
+    controls.target.copy(
+        center
+    );
+
+
+    controls.update();
+
+}
+
+
+/* =========================================================
+   ZOOM IN
+========================================================= */
+
+function zoomIn() {
+
+    const direction =
+        new THREE.Vector3();
+
+
+    direction
+        .subVectors(
+
+            camera.position,
+
+            controls.target
+
+        )
+        .multiplyScalar(
+            0.75
+        );
+
+
+    camera.position.copy(
+
+        controls.target
+            .clone()
+            .add(
+                direction
+            )
+
+    );
+
+
+    controls.update();
+
+}
+
+
+/* =========================================================
+   ZOOM OUT
+========================================================= */
+
+function zoomOut() {
+
+    const direction =
+        new THREE.Vector3();
+
+
+    direction
+        .subVectors(
+
+            camera.position,
+
+            controls.target
+
+        )
+        .multiplyScalar(
+            1.35
+        );
+
+
+    camera.position.copy(
+
+        controls.target
+            .clone()
+            .add(
+                direction
+            )
+
+    );
+
+
+    controls.update();
+
+}
+
+
+/* =========================================================
+   RESET CAMERA
+========================================================= */
+
+function resetCamera() {
+
+    if (
+        generatedObjects.length === 0
+    ) {
+
+        camera.position.set(
+
+            150,
+
+            150,
+
+            150
+
+        );
+
+
+        controls.target.set(
+
+            0,
+
+            0,
+
+            0
+
+        );
+
+
+        controls.update();
+
+        return;
+
+    }
+
+
+    fitCamera();
+
+}
+
+
+/* =========================================================
+   CAMERA BUTTONS
+========================================================= */
+
+document
+    .getElementById(
+        "zoomIn"
+    )
+    .onclick =
+    zoomIn;
+
+
+document
+    .getElementById(
+        "zoomOut"
+    )
+    .onclick =
+    zoomOut;
+
+
+document
+    .getElementById(
+        "resetView"
+    )
+    .onclick =
+    resetCamera;
+
+
+/* =========================================================
+   FORMAT DURATION
+========================================================= */
+
+function formatDuration(
+    seconds
+) {
+
+    const minutes =
+        Math.round(
+
+            seconds / 60
+
+        );
+
+
+    if (
+        minutes >= 60
+    ) {
+
+        const hours =
+            Math.floor(
+
+                minutes / 60
+
+            );
+
+
+        const remaining =
+            minutes % 60;
+
+
+        return (
+
+            `${hours} hr ${remaining} min`
+
+        );
+
+    }
+
+
+    return `${minutes} min`;
+
+}
+
+
+/* =========================================================
+   MAIN GENERATE FUNCTION
+========================================================= */
+
+async function generate() {
+
+    const button =
+        document.getElementById(
+            "generateButton"
+        );
+
+
+    const radius =
+        Number(
+
+            document
+                .getElementById(
+                    "radiusInput"
+                )
+                .value
+
+        );
+
+
+    /*
+     * Require at least two points.
+     */
+
+    if (
+        routePoints.length < 2
+    ) {
+
+        setStatus(
+
+            "Please select at least two points on the map.",
+
+            "error"
+
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        button.disabled =
+            true;
+
+
+        /* =================================================
+           STEP 1 — ROUTING
+        ================================================= */
+
+        loading(
+
+            true,
+
+            "Calculating multi-mode route..."
+
+        );
+
+
+        const segments =
+            await getCompleteRoute();
+
+
+        /* =================================================
+           STEP 2 — 2D ROUTES
+        ================================================= */
+
+        displayCompleteRoute(
+
+            segments
+
+        );
+
+
+        /* =================================================
+           STEP 3 — COMBINE GEOMETRIES
+        ================================================= */
+
+        const combinedCoordinates = [];
+
+
+        segments.forEach(
+            segment => {
+
+                segment.route
+                    .geometry
+                    .coordinates
+                    .forEach(
+                        coordinate => {
+
+                            combinedCoordinates.push(
+
+                                coordinate
+
+                            );
+
+                        }
+                    );
+
+            }
+        );
+
+
+        const combinedRoute = {
+
+            geometry: {
+
+                coordinates:
+                    combinedCoordinates
+
+            }
+
+        };
+
+
+        /* =================================================
+           STEP 4 — OSM FEATURES
+        ================================================= */
+
+        setStatus(
+
+            `Routes calculated. ` +
+            `Loading OSM buildings within ${radius} m...`
+
+        );
+
+
+        const osm =
+            await getOSMFeatures(
+
+                combinedRoute,
+
+                radius
+
+            );
+
+
+        /* =================================================
+           STEP 5 — 3D SCENE
+        ================================================= */
+
+        loading(
+
+            true,
+
+            "Creating 3D city..."
+
+        );
+
+
+        const start =
+            routePoints[0];
+
+
+        const destination =
+            routePoints[
+                routePoints.length - 1
+            ];
+
+
+        renderScene(
+
+            segments,
+
+            osm,
+
+            start,
+
+            destination
+
+        );
+
+
+        /* =================================================
+           STEP 6 — STATISTICS
+        ================================================= */
+
+        let totalDistance =
+            0;
+
+
+        let totalDuration =
+            0;
+
+
+        segments.forEach(
+            segment => {
+
+                totalDistance +=
+
+                    segment.route.distance;
+
+
+                totalDuration +=
+
+                    segment.route.duration;
+
+            }
+        );
+
+
+        document
+            .getElementById(
+                "stats"
+            )
+            .style.display =
+                "block";
+
+
+        document
+            .getElementById(
+                "distance"
+            )
+            .innerText =
+
+            (
+
+                totalDistance /
+                1000
+
+            ).toFixed(2) +
+
+            " km";
+
+
+        document
+            .getElementById(
+                "duration"
+            )
+            .innerText =
+
+            formatDuration(
+
+                totalDuration
+
+            );
+
+
+        document
+            .getElementById(
+                "segmentCount"
+            )
+            .innerText =
+
+            segments.length;
+
+
+        document
+            .getElementById(
+                "buildingCount"
+            )
+            .innerText =
+
+            Math.min(
+
+                osm.buildings.length,
+
+                Number(
+
+                    document
+                        .getElementById(
+                            "buildingLimit"
+                        )
+                        .value
+
+                )
+
+            );
+
+
+        document
+            .getElementById(
+                "busCount"
+            )
+            .innerText =
+
+            osm.busStops.length;
+
+
+        document
+            .getElementById(
+                "stationCount"
+            )
+            .innerText =
+
+            osm.stations.length;
+
+
+        /* =================================================
+           DONE
+        ================================================= */
+
+        setStatus(
+
+            "✓ Multi-mode 3D route generated. " +
+            "Each transportation mode is shown with a different colour. " +
+            "Use the mouse wheel to zoom and drag to rotate.",
+
+            "success"
+
+        );
+
+    }
+
+    catch (
+        error
+    ) {
+
+        console.error(
+            error
+        );
+
+
+        setStatus(
+
+            "Error: " +
+            error.message,
+
+            "error"
+
+        );
+
+    }
+
+    finally {
+
+        loading(
+            false
+        );
+
+
+        button.disabled =
+            false;
+
+    }
+
+}
+
+
+/* =========================================================
+   GENERATE BUTTON
+========================================================= */
+
+document
+    .getElementById(
+        "generateButton"
+    )
+    .onclick =
+    generate;
+
+
+/* =========================================================
+   RESIZE
+========================================================= */
+
+window.addEventListener(
+
+    "resize",
+
+    function() {
+
+        if (
+            map
+        ) {
+
+            map.invalidateSize();
+
+        }
+
+
+        if (
+            renderer
+        ) {
+
+            const container =
+                document.getElementById(
+                    "threeContainer"
+                );
+
+
+            camera.aspect =
+
+                container.clientWidth /
+                container.clientHeight;
+
+
+            camera.updateProjectionMatrix();
+
+
+            renderer.setSize(
+
+                container.clientWidth,
+
+                container.clientHeight
+
+            );
+
+        }
+
+    }
+
+);
+
+
+/* =========================================================
+   START APPLICATION
+========================================================= */
+
+initializeMap();
+
+initializeThree();
+
+</script>
+
+
+</body>
+
+</html>
